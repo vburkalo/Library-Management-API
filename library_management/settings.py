@@ -136,3 +136,17 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+Q_CLUSTER = {
+    "name": "myproject",
+    "workers": 4,
+    "recycle": 500,
+    "timeout": 60,
+    "retry": 180,
+    "queue_limit": 50,
+    "cpu_affinity": 1,
+}
+
+
+TELEGRAM_BOT_TOKEN = "7234709652:AAGfg6_C_22FUAUZkAyx8SdYel_2izqI6xw"

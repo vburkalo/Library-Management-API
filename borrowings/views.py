@@ -2,6 +2,7 @@ import logging
 from django.db import transaction
 from rest_framework import generics, serializers
 from borrowings.models import Borrowing
+from borrowings.notifications import notify_new_borrowing
 from borrowings.serializers import (
     BorrowingSerializer,
     BorrowingCreateSerializer,
@@ -28,6 +29,8 @@ class BorrowingCreateAPIView(generics.CreateAPIView):
         instance.book.inventory -= 1
         instance.book.save()
         logger.info(f"Book inventory updated. New inventory: {instance.book.inventory}")
+
+        notify_new_borrowing(instance)
 
 
 class BorrowingListAPIView(generics.ListAPIView):
