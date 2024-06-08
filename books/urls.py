@@ -3,9 +3,9 @@ from rest_framework.routers import DefaultRouter
 from books.views import BookViewSet, AuthorViewSet
 
 router = DefaultRouter()
-router.register('authors', AuthorViewSet)
-router.register('books', BookViewSet)
+router.register("authors", AuthorViewSet)
+router.register("books", BookViewSet)
 
 urlpatterns = [
-    path('', include(router.urls)),
+    path("", include(router.urls)),
 ]

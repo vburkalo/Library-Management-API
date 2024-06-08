@@ -11,8 +11,8 @@ class Author(models.Model):
 
 class Book(models.Model):
     COVER_CHOICES = [
-        ('HARD', 'Hardcover'),
-        ('SOFT', 'Softcover'),
+        ("HARD", "Hardcover"),
+        ("SOFT", "Softcover"),
     ]
 
     title = models.CharField(max_length=255)
@@ -22,7 +22,7 @@ class Book(models.Model):
     daily_fee = models.DecimalField(max_digits=5, decimal_places=2)
 
     def __str__(self):
-        authors = ', '.join([str(author) for author in self.authors.all()])
+        authors = ", ".join([str(author) for author in self.authors.all()])
         author_label = "Author" if self.authors.count() == 1 else "Authors"
         return (
             f"Title: {self.title} | {author_label}: {authors} | "
