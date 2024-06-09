@@ -1,6 +1,10 @@
 import logging
+import os
+
 from django.db import transaction
-from rest_framework import generics, serializers
+from rest_framework import generics, serializers, status
+from rest_framework.response import Response
+
 from borrowings.models import Borrowing
 from borrowings.notifications import notify_new_borrowing
 from borrowings.serializers import (
@@ -8,6 +12,9 @@ from borrowings.serializers import (
     BorrowingCreateSerializer,
     BorrowingReturnSerializer,
 )
+from payments.services import StripePaymentService, calculate_amount
+
+stripe_api_key = os.getenv("STRIPE_API_KEY")
 
 logger = logging.getLogger(__name__)
 
@@ -21,16 +28,36 @@ class BorrowingCreateAPIView(generics.CreateAPIView):
         logger.info("Performing create operation...")
 
         instance = serializer.save()
+
         if instance.book.inventory < 1:
             raise serializers.ValidationError(
                 "Not enough inventory to borrow this book"
             )
-
         instance.book.inventory -= 1
         instance.book.save()
         logger.info(f"Book inventory updated. New inventory: {instance.book.inventory}")
 
-        notify_new_borrowing(instance)
+        payment_service = StripePaymentService()
+        payment_data = {
+            "user_id": instance.user.id,
+            "amount": calculate_amount(instance),
+            "book_name": instance.book.title,
+        }
+        payment_response = payment_service.create_payment_session(payment_data)
+
+        if payment_response["success"]:
+            instance.session_id = payment_response["session_id"]
+            instance.session_url = payment_response["session_url"]
+            instance.save()
+            notify_new_borrowing(instance)
+            return Response(
+                {"borrowing": serializer.data}, status=status.HTTP_201_CREATED
+            )
+        else:
+            return Response(
+                {"error": "Payment processing failed"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 class BorrowingListAPIView(generics.ListAPIView):

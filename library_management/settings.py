@@ -150,3 +150,13 @@ Q_CLUSTER = {
 
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+
+STRIPE_API_KEY = os.getenv("STRIPE_API_KEY")
+DOMAIN_URL = os.getenv("DOMAIN_URL", "http://localhost:8000")
+
+STRIPE_SUCCESS_URL = (
+    "http://localhost:8000/api/payments/success/?session_id={CHECKOUT_SESSION_ID}"
+)
+STRIPE_CANCEL_URL = (
+    "http://localhost:8000/api/payments/cancel/?session_id={CHECKOUT_SESSION_ID}"
+)

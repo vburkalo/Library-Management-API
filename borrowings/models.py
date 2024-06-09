@@ -1,10 +1,10 @@
 from django.db import models
-from django.db.models.signals import post_save, pre_delete
+from django.db.models.signals import pre_delete
 from django.dispatch import receiver
 from django.utils import timezone
 
-from users.models import User
 from books.models import Book
+from users.models import User
 
 
 class Borrowing(models.Model):
@@ -13,6 +13,12 @@ class Borrowing(models.Model):
     borrow_date = models.DateField(default=timezone.now)
     expected_return_date = models.DateField()
     actual_return_date = models.DateField(blank=True, null=True)
+    payment_status = models.CharField(max_length=20, default="pending")
+    session_id = models.CharField(max_length=100, blank=True, null=True)
+    session_url = models.CharField(max_length=100, blank=True, null=True)
+    amount_paid = models.DecimalField(
+        max_digits=10, decimal_places=2, blank=True, null=True
+    )
 
     def is_active(self):
         return self.actual_return_date is None
