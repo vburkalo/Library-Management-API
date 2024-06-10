@@ -137,18 +137,6 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-
-Q_CLUSTER = {
-    "name": "myproject",
-    "workers": 4,
-    "recycle": 500,
-    "timeout": 60,
-    "retry": 180,
-    "queue_limit": 50,
-    "cpu_affinity": 1,
-}
-
-
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 STRIPE_API_KEY = os.getenv("STRIPE_API_KEY")
@@ -160,3 +148,10 @@ STRIPE_SUCCESS_URL = (
 STRIPE_CANCEL_URL = (
     "http://localhost:8000/api/payments/cancel/?session_id={CHECKOUT_SESSION_ID}"
 )
+
+
+CELERY_BROKER_URL = "redis://localhost:6379"
+CELERY_RESULT_BACKEND = "redis://localhost:6379"
+CELERY_TIMEZONE = "Europe/Kyiv"
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60
