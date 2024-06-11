@@ -30,12 +30,14 @@ class Borrowing(models.Model):
         return self.actual_return_date is None
 
     def calculate_overdue_days(self):
-        if (
-            self.actual_return_date
-            and self.actual_return_date > self.expected_return_date
-        ):
+        if self.actual_return_date and self.actual_return_date > self.expected_return_date:
             return (self.actual_return_date - self.expected_return_date).days
-        return 0
+        elif self.actual_return_date and self.actual_return_date <= self.expected_return_date:
+            return 0
+        elif not self.actual_return_date and timezone.now().date() > self.expected_return_date:
+            return (timezone.now().date() - self.expected_return_date).days
+        else:
+            return 0
 
     def calculate_fine_amount(self, daily_fee, fine_multiplier):
         overdue_days = self.calculate_overdue_days()
@@ -53,6 +55,9 @@ class Borrowing(models.Model):
 
     def __str__(self):
         return f"{self.user} borrows {self.book}"
+
+    class Meta:
+        unique_together = ['user', 'book']
 
 
 @receiver(pre_delete, sender=Borrowing)
