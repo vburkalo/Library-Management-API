@@ -43,9 +43,9 @@ class BorrowingCreateSerializer(serializers.ModelSerializer):
         book = attrs.get("book")
 
         if (
-                expected_return_date < borrow_date
-                or borrow_date > expected_return_date
-                or actual_return_date < expected_return_date
+            expected_return_date < borrow_date
+            or borrow_date > expected_return_date
+            or actual_return_date < expected_return_date
         ):
             raise serializers.ValidationError(
                 "Expected return date or actual return date cannot be sooner than the borrow date"
@@ -161,9 +161,9 @@ class BorrowingReturnSerializer(serializers.ModelSerializer):
         book = attrs.get("book")
 
         if (
-                expected_return_date < borrow_date
-                or borrow_date > expected_return_date
-                or actual_return_date < expected_return_date
+            expected_return_date < borrow_date
+            or borrow_date > expected_return_date
+            or actual_return_date < expected_return_date
         ):
             raise serializers.ValidationError(
                 "Expected return date or actual return date cannot be sooner than the borrow date"
@@ -203,7 +203,9 @@ class BorrowingReturnSerializer(serializers.ModelSerializer):
             instance = super().update(instance, validated_data)
 
             if instance.actual_return_date:
-                fine_amount = instance.calculate_fine_amount(instance.book.daily_fee, FINE_MULTIPLIER)
+                fine_amount = instance.calculate_fine_amount(
+                    instance.book.daily_fee, FINE_MULTIPLIER
+                )
                 if fine_amount > 0:
                     instance.fine_amount = fine_amount
                     instance.fine_payment_status = "pending"
@@ -216,7 +218,9 @@ class BorrowingReturnSerializer(serializers.ModelSerializer):
                         "book_name": instance.book.title,
                     }
 
-                    payment_response = payment_service.create_payment_session(payment_data)
+                    payment_response = payment_service.create_payment_session(
+                        payment_data
+                    )
 
                     if payment_response["success"]:
                         instance.session_id = payment_response["session_id"]

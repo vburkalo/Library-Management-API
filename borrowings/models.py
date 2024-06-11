@@ -30,7 +30,10 @@ class Borrowing(models.Model):
         return self.actual_return_date is None
 
     def calculate_overdue_days(self):
-        if self.actual_return_date and self.actual_return_date > self.expected_return_date:
+        if (
+            self.actual_return_date
+            and self.actual_return_date > self.expected_return_date
+        ):
             return (self.actual_return_date - self.expected_return_date).days
         return 0
 
@@ -40,7 +43,9 @@ class Borrowing(models.Model):
 
     def return_book(self):
         if self.actual_return_date > self.expected_return_date:
-            fine_amount = self.calculate_fine_amount(self.book.daily_fee, FINE_MULTIPLIER)
+            fine_amount = self.calculate_fine_amount(
+                self.book.daily_fee, FINE_MULTIPLIER
+            )
             if fine_amount > 0:
                 self.fine_amount = fine_amount
                 self.fine_payment_status = "pending"

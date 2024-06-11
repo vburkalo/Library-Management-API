@@ -101,8 +101,13 @@ class BorrowingReturnAPIView(generics.UpdateAPIView):
         return Response(serializer.data)
 
     def calculate_fine_amount(self, instance):
-        if instance.actual_return_date and instance.actual_return_date > instance.expected_return_date:
-            overdue_days = (instance.actual_return_date - instance.expected_return_date).days
+        if (
+            instance.actual_return_date
+            and instance.actual_return_date > instance.expected_return_date
+        ):
+            overdue_days = (
+                instance.actual_return_date - instance.expected_return_date
+            ).days
 
             fine_amount = overdue_days * instance.book.daily_fee * FINE_MULTIPLIER
             return fine_amount

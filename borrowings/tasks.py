@@ -8,7 +8,9 @@ from django.conf import settings
 @shared_task
 def check_overdue_borrowings():
     today = timezone.now().date()
-    overdue_borrowings = Borrowing.objects.filter(expected_return_date__lte=today, actual_return_date__isnull=True)
+    overdue_borrowings = Borrowing.objects.filter(
+        expected_return_date__lte=today, actual_return_date__isnull=True
+    )
 
     chat_id = settings.TELEGRAM_CHAT_ID
     bot_token = settings.TELEGRAM_BOT_TOKEN
@@ -24,4 +26,6 @@ def check_overdue_borrowings():
             )
             requests.post(bot_url, data={"chat_id": chat_id, "text": message})
     else:
-        requests.post(bot_url, data={"chat_id": chat_id, "text": "No borrowings overdue today!"})
+        requests.post(
+            bot_url, data={"chat_id": chat_id, "text": "No borrowings overdue today!"}
+        )
