@@ -18,6 +18,8 @@ stripe_api_key = os.getenv("STRIPE_API_KEY")
 
 logger = logging.getLogger(__name__)
 
+FINE_MULTIPLIER = 2
+
 
 class BorrowingCreateAPIView(generics.CreateAPIView):
     queryset = Borrowing.objects.all()
@@ -89,6 +91,19 @@ class BorrowingReturnAPIView(generics.UpdateAPIView):
 
     def perform_update(self, serializer):
         instance = serializer.save()
-        if instance.actual_return_date:
-            instance.book.inventory += 1
-            instance.book.save()
+
+        fine_amount = self.calculate_fine_amount(instance)
+
+        if fine_amount > 0:
+            instance.fine_paid = True
+            instance.save()
+
+        return Response(serializer.data)
+
+    def calculate_fine_amount(self, instance):
+        if instance.actual_return_date and instance.actual_return_date > instance.expected_return_date:
+            overdue_days = (instance.actual_return_date - instance.expected_return_date).days
+
+            fine_amount = overdue_days * instance.book.daily_fee * FINE_MULTIPLIER
+            return fine_amount
+        return 0
