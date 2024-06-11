@@ -37,19 +37,15 @@ class BorrowingCreateSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, attrs):
-        borrow_date = attrs.get("borrow_date")
-        expected_return_date = attrs.get("expected_return_date")
-        actual_return_date = attrs.get("actual_return_date")
+        user = attrs.get("user")
         book = attrs.get("book")
 
-        if (
-            expected_return_date < borrow_date
-            or borrow_date > expected_return_date
-            or actual_return_date < expected_return_date
-        ):
+        active_borrowings = Borrowing.objects.filter(
+            user=user, actual_return_date__isnull=True
+        ).count()
+        if active_borrowings > 0:
             raise serializers.ValidationError(
-                "Expected return date or actual return date cannot be sooner than the borrow date"
-                " and actual return date cannot be sooner than the expected borrow date."
+                "You already have an active borrowing. Please return the book before borrowing a new one."
             )
 
         if book.inventory <= 0:
