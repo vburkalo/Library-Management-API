@@ -57,7 +57,7 @@ class Borrowing(models.Model):
         return f"{self.user} borrows {self.book}"
 
     class Meta:
-        unique_together = ['user', 'book']
+        unique_together = ["user", "book"]
 
 
 @receiver(pre_delete, sender=Borrowing)
