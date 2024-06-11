@@ -16,7 +16,7 @@ class Borrowing(models.Model):
     expected_return_date = models.DateField()
     actual_return_date = models.DateField(blank=True, null=True)
     payment_status = models.CharField(max_length=20, default="pending")
-    fine_payment_status = models.CharField(max_length=20, default="pending")
+    fine_payment_status = models.CharField(max_length=20, default="pending", null=True)
     session_id = models.CharField(max_length=100, blank=True, null=True)
     session_url = models.CharField(max_length=100, blank=True, null=True)
     amount_paid = models.DecimalField(
