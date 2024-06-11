@@ -1,4 +1,5 @@
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
@@ -157,14 +158,18 @@ class BorrowingReturnSerializer(serializers.ModelSerializer):
         book = attrs.get("book")
 
         if (
-            expected_return_date < borrow_date
-            or borrow_date > expected_return_date
-            or actual_return_date < expected_return_date
+            actual_return_date is not None
+            and (expected_return_date < borrow_date
+                 or borrow_date > expected_return_date
+                 or actual_return_date < expected_return_date)
         ):
             raise serializers.ValidationError(
-                "Expected return date or actual return date cannot be sooner than the borrow date"
-                " and actual return date cannot be sooner than the expected borrow date."
+                "Expected return date or actual return date cannot be sooner than the borrow date "
+                "and actual return date cannot be sooner than the expected borrow date."
             )
+
+        if actual_return_date is None:
+            attrs["fine_payment_status"] = None
 
         if book.inventory <= 0:
             raise serializers.ValidationError(
