@@ -3,10 +3,12 @@ import os
 
 from django.db import transaction
 from rest_framework import generics, serializers, status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from borrowings.models import Borrowing
 from borrowings.notifications import notify_new_borrowing
+from borrowings.permissions import IsBorrowerOrAdmin
 from borrowings.serializers import (
     BorrowingSerializer,
     BorrowingCreateSerializer,
@@ -24,6 +26,7 @@ FINE_MULTIPLIER = 2
 class BorrowingCreateAPIView(generics.CreateAPIView):
     queryset = Borrowing.objects.all()
     serializer_class = BorrowingCreateSerializer
+    permission_classes = [IsAuthenticated]
 
     @transaction.atomic
     def perform_create(self, serializer):
@@ -64,6 +67,7 @@ class BorrowingCreateAPIView(generics.CreateAPIView):
 
 class BorrowingListAPIView(generics.ListAPIView):
     serializer_class = BorrowingSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user_id = self.request.query_params.get("user_id")
@@ -83,11 +87,13 @@ class BorrowingListAPIView(generics.ListAPIView):
 class BorrowingDetailAPIView(generics.RetrieveAPIView):
     queryset = Borrowing.objects.all()
     serializer_class = BorrowingSerializer
+    permission_classes = [IsBorrowerOrAdmin]
 
 
 class BorrowingReturnAPIView(generics.UpdateAPIView):
     queryset = Borrowing.objects.all()
     serializer_class = BorrowingReturnSerializer
+    permission_classes = [IsBorrowerOrAdmin]
 
     def perform_update(self, serializer):
         instance = serializer.save()
