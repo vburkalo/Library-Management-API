@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     "borrowings",
     "payments",
     "rest_framework",
+    "rest_framework.authtoken",
 ]
 
 MIDDLEWARE = [
