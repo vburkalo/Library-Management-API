@@ -30,11 +30,20 @@ class Borrowing(models.Model):
         return self.actual_return_date is None
 
     def calculate_overdue_days(self):
-        if self.actual_return_date and self.actual_return_date > self.expected_return_date:
+        if (
+            self.actual_return_date
+            and self.actual_return_date > self.expected_return_date
+        ):
             return (self.actual_return_date - self.expected_return_date).days
-        elif self.actual_return_date and self.actual_return_date <= self.expected_return_date:
+        elif (
+            self.actual_return_date
+            and self.actual_return_date <= self.expected_return_date
+        ):
             return 0
-        elif not self.actual_return_date and timezone.now().date() > self.expected_return_date:
+        elif (
+            not self.actual_return_date
+            and timezone.now().date() > self.expected_return_date
+        ):
             return (timezone.now().date() - self.expected_return_date).days
         else:
             return 0
