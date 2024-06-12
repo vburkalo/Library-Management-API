@@ -1,6 +1,5 @@
-import asyncio
-from telegram import Bot
 from django.conf import settings
+from telegram import Bot
 
 
 async def send_notification(chat_id, message):
@@ -8,7 +7,7 @@ async def send_notification(chat_id, message):
     await bot.send_message(chat_id=chat_id, text=message)
 
 
-def notify_new_borrowing(borrowing):
+async def notify_new_borrowing(borrowing):
     chat_id = "6976462510"
     message = f"New borrowing created: {borrowing}"
-    asyncio.run(send_notification(chat_id, message))
+    await send_notification(chat_id, message)
