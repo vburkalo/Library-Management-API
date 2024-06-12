@@ -1,12 +1,11 @@
 from django.db import transaction
-from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 
+from books.models import Book
 from borrowings.models import Borrowing
 from payments.services import StripePaymentService
 from users.models import User
-from books.models import Book
 
 FINE_MULTIPLIER = 10
 
@@ -40,19 +39,25 @@ class BorrowingCreateSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         user = attrs.get("user")
         book = attrs.get("book")
+        borrow_date = attrs.get("borrow_date")
+        expected_return_date = attrs.get("expected_return_date")
+
+        if expected_return_date < borrow_date:
+            raise serializers.ValidationError(
+                "Expected return date cannot be before borrow date."
+            )
 
         active_borrowings = Borrowing.objects.filter(
             user=user, actual_return_date__isnull=True
         ).count()
         if active_borrowings > 0:
-            raise serializers.ValidationError(
-                "You already have an active borrowing. Please return the book before borrowing a new one."
-            )
+            raise serializers.ValidationError("You already have an active borrowing.")
 
         if book.inventory <= 0:
             raise serializers.ValidationError(
                 "Not enough inventory to borrow this book"
             )
+
         return attrs
 
     def get_user_email(self, obj):
@@ -75,22 +80,45 @@ class BorrowingCreateSerializer(serializers.ModelSerializer):
         return obj.payment_status
 
     def create(self, validated_data):
-        borrow_date = validated_data.get("borrow_date")
-        expected_return_date = validated_data.get("expected_return_date")
-        book = validated_data.get("book")
-        daily_fee = book.daily_fee
+        with transaction.atomic():
+            borrow_date = validated_data.get("borrow_date")
+            expected_return_date = validated_data.get("expected_return_date")
+            book = validated_data.get("book")
+            daily_fee = book.daily_fee
 
-        borrow_duration = (expected_return_date - borrow_date).days
+            borrow_duration = (expected_return_date - borrow_date).days
+            total_fee = borrow_duration * daily_fee
 
-        total_fee = borrow_duration * daily_fee
+            amount_paid = validated_data.get("amount_paid", 0)
+            if amount_paid < total_fee:
+                raise serializers.ValidationError(
+                    "Amount paid should be at least equal to the total fee."
+                )
 
-        amount_paid = validated_data.get("amount_paid", 0)
-        if amount_paid < total_fee:
-            raise serializers.ValidationError(
-                "Amount paid should be at least equal to the total fee."
-            )
+            validated_data["amount_paid"] = total_fee
 
-        return super().create(validated_data)
+            book.inventory -= 1
+            book.save()
+
+            borrowing = super().create(validated_data)
+
+            payment_service = StripePaymentService()
+            payment_data = {
+                "user_id": borrowing.user.id,
+                "amount": total_fee,
+                "book_name": borrowing.book.title,
+            }
+
+            payment_response = payment_service.create_payment_session(payment_data)
+            if payment_response["success"]:
+                borrowing.session_id = payment_response["session_id"]
+                borrowing.session_url = payment_response["session_url"]
+                borrowing.payment_status = "pending"
+                borrowing.save()
+            else:
+                raise ValidationError("Payment processing failed.")
+
+            return borrowing
 
 
 class BorrowingSerializer(serializers.ModelSerializer):
@@ -109,6 +137,16 @@ class BorrowingSerializer(serializers.ModelSerializer):
             "actual_return_date",
             "payment_status",
         ]
+        validators = []
+
+    def validate(self, data):
+        user = data.get("user")
+        book = data.get("book")
+        if Borrowing.objects.filter(
+            user=user, book=book, actual_return_date__isnull=True
+        ).exists():
+            raise ValidationError("You already have an active borrowing")
+        return data
 
     def get_user(self, obj):
         return obj.user.email
@@ -151,31 +189,24 @@ class BorrowingReturnSerializer(serializers.ModelSerializer):
             "fine_amount",
         ]
 
-    def validate(self, attrs):
-        borrow_date = attrs.get("borrow_date")
-        expected_return_date = attrs.get("expected_return_date")
-        actual_return_date = attrs.get("actual_return_date")
-        book = attrs.get("book")
+    def validate(self, data):
+        borrowing = self.instance
+        actual_return_date = data.get("actual_return_date")
 
-        if (
-            actual_return_date is not None
-            and (expected_return_date < borrow_date
-                 or borrow_date > expected_return_date
-                 or actual_return_date < expected_return_date)
-        ):
-            raise serializers.ValidationError(
-                "Expected return date or actual return date cannot be sooner than the borrow date "
-                "and actual return date cannot be sooner than the expected borrow date."
-            )
+        if actual_return_date:
+            if actual_return_date < borrowing.borrow_date:
+                raise ValidationError(
+                    "Actual return date cannot be before borrow date."
+                )
+            if (
+                borrowing.expected_return_date
+                and actual_return_date < borrowing.expected_return_date
+            ):
+                raise ValidationError(
+                    "Actual return date cannot be before expected return date."
+                )
 
-        if actual_return_date is None:
-            attrs["fine_payment_status"] = None
-
-        if book.inventory <= 0:
-            raise serializers.ValidationError(
-                "Not enough inventory to borrow this book"
-            )
-        return attrs
+        return data
 
     def get_user_email(self, obj):
         return obj.user.email
