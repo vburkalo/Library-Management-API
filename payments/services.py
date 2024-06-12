@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 import stripe
 from django.conf import settings
@@ -49,12 +49,11 @@ class StripePaymentService:
 
 
 def calculate_amount(borrowing_instance):
-    borrow_duration = (
-        borrowing_instance.actual_return_date - borrowing_instance.borrow_date
-    ).days
+    if borrowing_instance.actual_return_date:
+        duration = (
+            borrowing_instance.actual_return_date - borrowing_instance.borrow_date
+        ).days
+    else:
+        duration = (date.today() - borrowing_instance.borrow_date).days
 
-    daily_fee = borrowing_instance.book.daily_fee
-
-    total_amount = borrow_duration * daily_fee
-
-    return total_amount
+    return duration * borrowing_instance.book.daily_fee
