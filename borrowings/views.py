@@ -2,6 +2,7 @@ import logging
 import os
 
 from django.db import transaction
+from drf_spectacular.utils import extend_schema
 from rest_framework import generics, serializers, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -28,6 +29,11 @@ class BorrowingCreateAPIView(generics.CreateAPIView):
     serializer_class = BorrowingCreateSerializer
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Create a borrowing",
+        responses={201: BorrowingCreateSerializer},
+        request=BorrowingCreateSerializer,
+    )
     @transaction.atomic
     def perform_create(self, serializer):
         logger.info("Performing create operation...")
@@ -69,6 +75,26 @@ class BorrowingListAPIView(generics.ListAPIView):
     serializer_class = BorrowingSerializer
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="List borrowings",
+        responses={200: BorrowingSerializer(many=True)},
+        parameters=[
+            {
+                "name": "user_id",
+                "required": False,
+                "in": "query",
+                "description": "Filter by user ID",
+                "schema": {"type": "integer"},
+            },
+            {
+                "name": "is_active",
+                "required": False,
+                "in": "query",
+                "description": "Filter by active status",
+                "schema": {"type": "string", "enum": ["true", "false"]},
+            },
+        ],
+    )
     def get_queryset(self):
         user_id = self.request.query_params.get("user_id")
         is_active = self.request.query_params.get("is_active")
@@ -89,12 +115,17 @@ class BorrowingDetailAPIView(generics.RetrieveAPIView):
     serializer_class = BorrowingSerializer
     permission_classes = [IsBorrowerOrAdmin]
 
+    @extend_schema(summary="Retrieve a borrowing", responses={200: BorrowingSerializer})
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
 
 class BorrowingReturnAPIView(generics.UpdateAPIView):
     queryset = Borrowing.objects.all()
     serializer_class = BorrowingReturnSerializer
     permission_classes = [IsBorrowerOrAdmin]
 
+    @extend_schema(summary="Return a borrowing", request=BorrowingReturnSerializer)
     def perform_update(self, serializer):
         instance = serializer.save()
 
